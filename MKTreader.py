@@ -8,7 +8,7 @@ __version__ = "0.0.1"
 import numpy as np
 import struct
 from os import stat
-
+from auxfiles import circularMask
 
 class fileinfo:
     offset = 16 # 16 byte header
@@ -30,7 +30,7 @@ class MKTreader:
 
        self.fileHandle.seek(5) # we find the FPS at position 05
        fFPSByte = self.fileHandle.read(4)
-       self.fps = struct.unpack('>f', fFPSByte)
+       self.fps = struct.unpack('>f', fFPSByte)[0]
        print('FPS: '+str(self.fps))
 
        self.fileHandle.seek(10) # we find the image size at position 10
@@ -54,7 +54,7 @@ class MKTreader:
        print("Number of images "+str(self.fi.nImages))
 
        # generate circular mask for this file
-       self.circMask = circularMask(self.fi.width,self.fi.height, self.fi.width-2).mask
+       self.circMask = circularMask.circularMask(self.fi.width,self.fi.height, self.fi.width-2).mask
 
     def readImage(self, position=0):
 
@@ -69,7 +69,7 @@ class MKTreader:
        # read image and scale to uint8 [0;255] format
        image=self.readImage(position)
 
-       maskedImage = image[self.circShape]
+       maskedImage = image[self.circMask]
 
        cmin,cmax = np.min(maskedImage), np.max(maskedImage)
        # another option to increase contrast would be:
@@ -90,4 +90,4 @@ class MKTreader:
 
        return image
 
-∏# Example: x = MKTreader('Laesion031-2014.mkt')
+# Example: x = MKTreader('Laesion031-2014.mkt')
