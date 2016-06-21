@@ -17,6 +17,7 @@ class fileinfo:
     width = 0
     height = 0
     nImages = 0
+    circMask = 0;
 
 class MKTreader:
     fileName = ''
@@ -52,6 +53,9 @@ class MKTreader:
        self.fi.nImages = int(filestats.st_size / (self.fi.size))
        print("Number of images "+str(self.fi.nImages))
 
+       # generate circular mask for this file
+       self.circMask = circularMask(self.fi.width,self.fi.height, self.fi.width-2).mask
+
     def readImage(self, position=0):
 
        self.fileHandle.seek(self.fi.offset + self.fi.size*position + self.fi.gapBetweenImages*position)
@@ -61,5 +65,29 @@ class MKTreader:
        image=np.reshape(image, newshape=(self.fi.height, self.fi.width))
        return image
 
+    def readImageUINT8(self, position=0):
+       # read image and scale to uint8 [0;255] format
+       image=self.readImage(position)
 
-# Example: x = MKTreader('Laesion031-2014.mkt')
+       maskedImage = image[self.circShape]
+
+       cmin,cmax = np.min(maskedImage), np.max(maskedImage)
+       # another option to increase contrast would be:
+       #cmin,cmax = np.percentile(maskedImage,0.5), np.percentile(maskedImage,99.5)
+       # print("Scaling from ["+str(cmin)+","+str(cmax)+"] to [0,255]")
+
+       # scale [cmin,cmax] to [0,255]
+       dyn=cmax-cmin
+
+       # compress
+       compr=255/dyn
+       image = image-cmin
+       image = image*compr
+
+       # limit to 0
+       image = np.clip(np.round(image),0,255)
+       image=np.uint8(image)
+
+       return image
+
+∏# Example: x = MKTreader('Laesion031-2014.mkt')
